@@ -1,0 +1,24 @@
+# YOLOv8 Segmentation Dataset Configuration
+# Sagittal spine MRI slices with 4 classes
+
+# Dataset paths (relative to this config file or absolute)
+path: ../data/derivatives/yolo_sagittal  # Root dataset directory
+train: images/train  # Train images (relative to 'path')
+val: images/val      # Val images (relative to 'path')
+test: images/test    # Test images (relative to 'path')
+
+# Class definitions
+names:
+  0: vertebra
+  1: ivf
+  2: sacrum
+  3: spinal_canal
+
+# Number of classes
+nc: 4
+
+# Additional metadata (optional)
+author: LSU Health Sciences - Spinal Intelligence Lab
+description: Sagittal T2 MRI spine segmentation dataset
+version: 1.0
+date_created: 2025-10-28
