@@ -16,7 +16,7 @@ Windows-based pipeline for training YOLOv8 instance segmentation on MRI spine da
 
 ## Repository Structure
 ```
-ai-spine-seg/
+segment-model/
 ├─ src/
 │  ├─ common/        # Shared utilities (IO, geometry, visualization)
 │  └─ yolo/          # YOLO data prep, training, inference
@@ -48,23 +48,48 @@ ai-spine-seg/
 
 1. **Clone the repository:**
 ```powershell
-   git clone <your-repo-url> ai-spine-seg
-   cd ai-spine-seg
+   git clone https://github.com/lsuhs-lumbarlab/segment-model
+   cd segment-model
 ```
 
 2. **Activate your existing conda environment:**
 ```powershell
-   conda activate spineai
+   conda activate segment-model
 ```
 
-3. **Install dependencies** (see Step 2 setup instructions - coming next)
+3. **Install dependencies**
+
+   **Option A: Use existing environment (if you already have segment-model):**
+```powershell
+   conda activate segment-model
+   
+   # Install PyTorch with CUDA 11.8
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+   
+   # Install remaining dependencies
+   pip install -r requirements.txt
+```
+
+   **Option B: Create new environment from scratch:**
+```powershell
+   # Create environment from yml file
+   conda env create -f environment.yml
+   
+   # Activate it
+   conda activate segment-model
+   
+   # Install PyTorch with CUDA support
+   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+   **Note:** Use `cu121` instead of `cu118` if you have CUDA 12.1+ drivers.
 
 4. **Verify GPU access:**
 ```powershell
    python -c "import torch; print('CUDA available:', torch.cuda.is_available())"
 ```
 
----
+Expected output: `CUDA available: True` and your GPU name.
 
 ## Development Workflow
 

@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### **5. `LICENSE`** (example - adjust as needed)
 
-**Path:** `ai-spine-seg\LICENSE`
+**Path:** `segment-model\LICENSE`
 ```
 MIT License
 

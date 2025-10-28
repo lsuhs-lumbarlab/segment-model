@@ -1,0 +1,35 @@
+# Deep Learning & Computer Vision
+torch>=2.0.0
+torchvision>=0.15.0
+ultralytics>=8.0.0
+
+# Medical Imaging
+nibabel>=5.0.0
+SimpleITK>=2.2.0
+pydicom>=2.3.0
+
+# Image Processing & Visualization
+opencv-python>=4.8.0
+scikit-image>=0.21.0
+matplotlib>=3.7.0
+Pillow>=10.0.0
+
+# Object Detection Utilities
+sahi>=0.11.0
+
+# Scientific Computing
+numpy>=1.24.0,<2.0.0
+scipy>=1.10.0
+
+# Utilities
+tqdm>=4.65.0
+PyYAML>=6.0
+pandas>=2.0.0
+
+# Code Quality (optional)
+black>=23.0.0
+ruff>=0.0.280
+
+# Jupyter (optional)
+jupyter>=1.0.0
+ipykernel>=6.25.0
