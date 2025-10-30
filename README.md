@@ -91,6 +91,32 @@ segment-model/
 
 Expected output: `CUDA available: True` and your GPU name.
 
+## Quick Inference
+
+Run inference on new MRI scans:
+
+1. **Place NIfTI files in the inference folder:**
+```powershell
+# Copy your .nii.gz files to data/inference/
+# They can be named anything (e.g., patient001.nii.gz, john-smith.nii.gz)
+```
+
+2. **Run batch inference on all files:**
+```powershell
+python scripts/run_inference_test_patient.py
+```
+
+That's it! The pipeline will:
+- ✅ Auto-detect all `.nii.gz` files in `data/inference/`
+- ✅ Auto-derive patient IDs from filenames
+- ✅ Export 2D sagittal slices
+- ✅ Run segmentation inference
+- ✅ Save predictions in YOLO and JSON formats
+
+For detailed usage and options, see [`docs/INFERENCE_USAGE.md`](docs/INFERENCE_USAGE.md).
+
+---
+
 ## Development Workflow
 
 *(Steps will be added as development progresses)*

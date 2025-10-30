@@ -2,17 +2,44 @@
 
 ## Overview
 
-The `src/common/viz_overlay.py` script creates quality control visualizations by drawing predicted polygons on original images with class-specific colors.
+The QC overlay script creates quality control visualizations by drawing predicted polygons on original images with class-specific colors. This works automatically with batch inference output.
 
 ## Quick Start
 
-### Create overlays
+### Create overlays for all inference results
 ```powershell
-python scripts\run_create_overlays.py
+python scripts/run_create_overlays.py
+```
+
+That's it! This will process all slices from your batch inference and create overlay images in `outputs/qc/`.
+
+## Custom Usage
+
+### Custom paths
+```powershell
+python scripts/run_create_overlays.py --images data/custom/images --predictions outputs/custom/predictions --output outputs/qc_custom
+```
+
+### Different prediction format
+```powershell
+# Use YOLO format labels instead of JSON
+python scripts/run_create_overlays.py --format yolo
+```
+
+### Disable IVF pseudo-coloring
+```powershell
+python scripts/run_create_overlays.py --no-pseudo-color
+```
+
+### Training set overlays
+```powershell
+# Visualize ground truth labels
+python -m src.common.viz_overlay --images data/derivatives/yolo_sagittal/images/train --predictions data/derivatives/yolo_sagittal/labels/train --output outputs/qc/train_gt --format yolo
 ```
 
 ## Features
 
+- **Batch processing** - Automatically handles all inference results
 - **Class-specific colors** for easy identification
 - **Semi-transparent fills** to see underlying anatomy
 - **Confidence scores** displayed on predictions
@@ -29,38 +56,19 @@ python scripts\run_create_overlays.py
 
 ### IVF Pseudo-Coloring (QC Mode)
 
-When `--pseudo-color-ivf` is enabled:
+When enabled (default):
 - **Left IVFs** (x < image_width/2) = Light blue
 - **Right IVFs** (x > image_width/2) = Light red
 
 This helps verify that the model is detecting IVFs on both sides.
-
-## Custom Usage
-
-### Different prediction format
-```powershell
-# Use YOLO format labels instead of JSON
-python -m src.common.viz_overlay --images data/inference/slices/images --predictions outputs/inference/labels --output outputs/qc --format yolo
-```
-
-### Adjust visualization
-```powershell
-# Thicker lines, more transparent fills
-python -m src.common.viz_overlay --images data/inference/slices/images --predictions outputs/inference/predictions --output outputs/qc --thickness 3 --alpha 0.2
-```
-
-### Training set overlays
-```powershell
-# Visualize ground truth labels
-python -m src.common.viz_overlay --images data/derivatives/yolo_sagittal/images/train --predictions data/derivatives/yolo_sagittal/labels/train --output outputs/qc/train_gt --format yolo
-```
 
 ## Output Structure
 ```
 outputs/qc/
 ├─ patient_test001_slice0000_overlay.png
 ├─ patient_test001_slice0001_overlay.png
-├─ patient_test001_slice0002_overlay.png
+├─ patient_test002_slice0000_overlay.png
+├─ john-smith_slice0000_overlay.png
 └─ ...
 ```
 
@@ -82,4 +90,4 @@ outputs/qc/
 
 ## Next Steps
 
-Step 10 will create ROI crop generators for vertebra and IVF regions.
+- [Convert predictions to 3D NIfTI masks](STEP_10_NIFTI_RECONSTRUCTION.md) for viewing in 3D Slicer

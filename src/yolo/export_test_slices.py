@@ -101,6 +101,62 @@ def export_test_slices(
     return slice_count
 
 
+def process_batch_inference_files(
+    input_dir: Path,
+    output_dir: Path,
+    axis: int = 0,
+) -> dict:
+    """
+    Process all NIfTI files in the inference directory.
+
+    Args:
+        input_dir: Directory containing .nii.gz files
+        output_dir: Output directory for slices
+        axis: Slice axis (0=sagittal in RAS, 1=coronal, 2=axial)
+
+    Returns:
+        Dictionary with processing statistics
+    """
+    # Find all .nii.gz files
+    nifti_files = sorted(input_dir.glob("*.nii.gz"))
+    
+    if not nifti_files:
+        print(f"ERROR: No .nii.gz files found in {input_dir}")
+        return {"processed": 0, "total_slices": 0}
+    
+    print(f"Found {len(nifti_files)} NIfTI files to process:")
+    for nf in nifti_files:
+        print(f"  - {nf.name}")
+    
+    stats = {"processed": 0, "total_slices": 0, "files": {}}
+    
+    for nifti_file in nifti_files:
+        # Derive patient ID from filename (remove .nii.gz extension)
+        patient_id = nifti_file.stem.replace(".nii", "")
+        
+        print(f"\n{'=' * 70}")
+        print(f"Processing: {nifti_file.name} (ID: {patient_id})")
+        print(f"{'=' * 70}")
+        
+        try:
+            n_slices = export_test_slices(
+                patient_id,
+                nifti_file,
+                output_dir,
+                axis,
+            )
+            stats["processed"] += 1
+            stats["total_slices"] += n_slices
+            stats["files"][patient_id] = {"slices": n_slices, "status": "success"}
+            
+        except Exception as e:
+            print(f"  ✗ ERROR processing {nifti_file.name}: {e}")
+            stats["files"][patient_id] = {"slices": 0, "status": "failed", "error": str(e)}
+            continue
+    
+    return stats
+
+
 def main():
     """CLI entry point for exporting test slices."""
     import argparse
@@ -111,14 +167,14 @@ def main():
     parser.add_argument(
         "--input",
         type=Path,
-        required=True,
-        help="Input NIfTI image file (e.g., data/inference/patient_test001/image.nii.gz)",
+        default=None,
+        help="Input NIfTI image file OR directory containing .nii.gz files (default: data/inference)",
     )
     parser.add_argument(
         "--patient_id",
         type=str,
-        required=True,
-        help="Patient identifier (e.g., patient_test001)",
+        default=None,
+        help="Patient identifier (only needed if --input is a single file)",
     )
     parser.add_argument(
         "--output_dir",
@@ -140,25 +196,59 @@ def main():
     print("Export Test Slices for Inference")
     print("=" * 70)
 
-    # Verify input exists
+    # If no input specified, use default inference directory
+    if args.input is None:
+        args.input = Path("data/inference")
+    
+    # Check if input is a file or directory
     if not args.input.exists():
-        print(f"ERROR: Input file not found: {args.input}")
+        print(f"ERROR: Input not found: {args.input}")
         sys.exit(1)
-
+    
     try:
-        n_slices = export_test_slices(
-            args.patient_id,
-            args.input,
-            args.output_dir,
-            args.axis,
-        )
+        if args.input.is_file():
+            # Single file mode (backwards compatibility)
+            if args.patient_id is None:
+                # Derive patient ID from filename
+                args.patient_id = args.input.stem.replace(".nii", "")
+                print(f"Auto-detected patient ID: {args.patient_id}")
+            
+            n_slices = export_test_slices(
+                args.patient_id,
+                args.input,
+                args.output_dir,
+                args.axis,
+            )
 
-        print("\n" + "=" * 70)
-        print("Export Complete")
-        print("=" * 70)
-        print(f"Slices exported: {n_slices}")
-        print(f"Output directory: {args.output_dir.absolute()}")
-        print("=" * 70)
+            print("\n" + "=" * 70)
+            print("Export Complete")
+            print("=" * 70)
+            print(f"Slices exported: {n_slices}")
+            print(f"Output directory: {args.output_dir.absolute()}")
+            print("=" * 70)
+        
+        else:
+            # Batch directory mode
+            print(f"Batch mode: Processing all .nii.gz files in {args.input}")
+            print("=" * 70)
+            
+            stats = process_batch_inference_files(
+                args.input,
+                args.output_dir,
+                args.axis,
+            )
+            
+            print("\n" + "=" * 70)
+            print("Batch Export Complete")
+            print("=" * 70)
+            print(f"Files processed: {stats['processed']}")
+            print(f"Total slices exported: {stats['total_slices']}")
+            print(f"\nPer-file results:")
+            for patient_id, info in stats["files"].items():
+                status_symbol = "✓" if info["status"] == "success" else "✗"
+                print(f"  {status_symbol} {patient_id}: {info['slices']} slices ({info['status']})")
+            print(f"\nOutput directory: {args.output_dir.absolute()}")
+            print("=" * 70)
 
     except Exception as e:
         print(f"\nERROR: {e}")

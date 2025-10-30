@@ -1,10 +1,15 @@
 """
-End-to-end inference on a single test patient.
+End-to-end inference on test patients.
 
 This script:
-1. Exports slices from image-only NIfTI
+1. Exports slices from image-only NIfTI files
 2. Runs trained model inference
 3. Saves predictions
+
+Supports both:
+- Single file: --input path/to/file.nii.gz
+- Batch mode: --input path/to/directory/ (processes all .nii.gz files)
+- Default batch: no --input (processes all files in data/inference/)
 """
 
 import sys
@@ -36,19 +41,34 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Run inference on a single test patient"
+        description="Run inference on test patients (single file or batch)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Batch mode - process all .nii.gz files in data/inference/
+  python scripts/run_inference_test_patient.py
+  
+  # Batch mode - process all .nii.gz files in custom directory
+  python scripts/run_inference_test_patient.py --input path/to/nifti/files/
+  
+  # Single file mode
+  python scripts/run_inference_test_patient.py --input patient001.nii.gz
+  
+  # Single file with custom patient ID
+  python scripts/run_inference_test_patient.py --input john-smith.nii.gz --patient_id john_smith
+        """
     )
     parser.add_argument(
         "--input",
         type=Path,
-        required=True,
-        help="Path to test patient image.nii.gz",
+        default=None,
+        help="Path to NIfTI file OR directory containing .nii.gz files (default: data/inference/)",
     )
     parser.add_argument(
         "--patient_id",
         type=str,
-        required=True,
-        help="Patient identifier (e.g., patient_test001)",
+        default=None,
+        help="Patient identifier (optional, auto-derived from filename if not provided)",
     )
     parser.add_argument(
         "--model",
@@ -56,14 +76,50 @@ if __name__ == "__main__":
         default=None,
         help="Path to trained model (default: auto-detect from latest training run)",
     )
+    parser.add_argument(
+        "--output_slices",
+        type=Path,
+        default=Path("data/inference/slices"),
+        help="Output directory for exported slices (default: data/inference/slices)",
+    )
+    parser.add_argument(
+        "--output_predictions",
+        type=Path,
+        default=Path("outputs/inference"),
+        help="Output directory for predictions (default: outputs/inference)",
+    )
 
     args = parser.parse_args()
 
     print("=" * 70)
-    print("End-to-End Inference on Test Patient")
+    print("End-to-End Inference Pipeline")
     print("=" * 70)
-    print(f"Patient ID: {args.patient_id}")
-    print(f"Input: {args.input}")
+
+    # Set default input directory if not specified
+    if args.input is None:
+        args.input = Path("data/inference")
+        print(f"Using default input directory: {args.input}")
+    
+    # Determine mode
+    if args.input.is_file():
+        mode = "single"
+        print(f"Mode: Single file")
+        print(f"Input: {args.input}")
+        if args.patient_id:
+            print(f"Patient ID: {args.patient_id}")
+        else:
+            derived_id = args.input.stem.replace(".nii", "")
+            print(f"Patient ID: {derived_id} (auto-derived)")
+    elif args.input.is_dir():
+        mode = "batch"
+        nifti_count = len(list(args.input.glob("*.nii.gz")))
+        print(f"Mode: Batch processing")
+        print(f"Input directory: {args.input}")
+        print(f"Found: {nifti_count} .nii.gz files")
+    else:
+        print(f"✗ ERROR: Input not found: {args.input}")
+        sys.exit(1)
+    
     print("=" * 70)
 
     # Auto-detect model if not specified
@@ -90,18 +146,22 @@ if __name__ == "__main__":
     export_cmd = [
         "python", "-m", "src.yolo.export_test_slices",
         "--input", str(args.input),
-        "--patient_id", args.patient_id,
-        "--output_dir", "data/inference/slices",
+        "--output_dir", str(args.output_slices),
     ]
+    
+    # Add patient_id only for single file mode if specified
+    if mode == "single" and args.patient_id:
+        export_cmd.extend(["--patient_id", args.patient_id])
+    
     run_command(export_cmd, "Step 1: Export slices from NIfTI")
 
     # Step 2: Run inference
     infer_cmd = [
         "python", "-m", "src.yolo.infer",
         "--model", str(args.model),
-        "--images", "data/inference/slices/images",
-        "--output", "outputs/inference",
-        "--meta", "data/inference/slices/meta",
+        "--images", str(args.output_slices / "images"),
+        "--output", str(args.output_predictions),
+        "--meta", str(args.output_slices / "meta"),
         "--format", "both",
     ]
     run_command(infer_cmd, "Step 2: Run model inference")
@@ -109,7 +169,7 @@ if __name__ == "__main__":
     print("\n" + "=" * 70)
     print("Inference Pipeline Complete!")
     print("=" * 70)
-    print(f"Slices: data/inference/slices/images/")
-    print(f"Predictions (YOLO): outputs/inference/labels/")
-    print(f"Predictions (JSON): outputs/inference/predictions/")
+    print(f"Slices: {args.output_slices / 'images'}/")
+    print(f"Predictions (YOLO): {args.output_predictions / 'labels'}/")
+    print(f"Predictions (JSON): {args.output_predictions / 'predictions'}/")
     print("=" * 70)
